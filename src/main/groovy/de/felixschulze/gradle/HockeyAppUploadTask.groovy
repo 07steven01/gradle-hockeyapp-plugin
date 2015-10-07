@@ -63,6 +63,7 @@ class HockeyAppUploadTask extends DefaultTask {
     HockeyAppPluginExtension hockeyApp
     String uploadAllPath
 
+    final String UNIVERSAL_APK_FILENAME_PART = "-universal-";
 
     HockeyAppUploadTask() {
         super()
@@ -80,7 +81,9 @@ class HockeyAppUploadTask extends DefaultTask {
             logger.debug('Using android application variants')
 
             applicationVariant.outputs.each {
-                if (FilenameUtils.isExtension(it.outputFile.getName(), "apk")) {
+                name = it.outputFile.getName()
+
+                if (FilenameUtils.isExtension(name, "apk") && name.contains(UNIVERSAL_APK_FILENAME_PART)) {
                     applicationFile = it.outputFile
                     return true
                 }
@@ -146,9 +149,7 @@ class HockeyAppUploadTask extends DefaultTask {
                 }
             }
         }
-        if(appId) {
-            uploadAppplicationFileToHockeyApp(applicationFile, mappingFile, appId)
-        }
+        uploadAppplicationFileToHockeyApp(applicationFile, mappingFile, appId)
     }
 
     def void uploadAppplicationFileToHockeyApp(File appFile, @Nullable File mappingFile, String appId) {
