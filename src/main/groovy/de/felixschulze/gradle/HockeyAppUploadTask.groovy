@@ -81,7 +81,7 @@ class HockeyAppUploadTask extends DefaultTask {
             logger.debug('Using android application variants')
 
             applicationVariant.outputs.each {
-                name = it.outputFile.getName()
+                final String name = it.outputFile.getName()
 
                 if (FilenameUtils.isExtension(name, "apk") && name.contains(UNIVERSAL_APK_FILENAME_PART)) {
                     applicationFile = it.outputFile
