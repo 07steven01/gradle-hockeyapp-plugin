@@ -36,7 +36,7 @@ dependencies {
     compile 'commons-configuration:commons-configuration:1.8'
     compile 'org.apache.httpcomponents:httpclient:4.3.6'
     compile 'org.apache.httpcomponents:httpmime:4.3.6'
-    compile 'com.android.tools.build:gradle:1.1.3'
+    compile 'com.android.tools.build:gradle:1.0.0'
     compile 'de.felixschulze.teamcity:teamcity-status-message-helper:1.0.2'
 }
 
@@ -71,17 +71,11 @@ install.repositories.mavenInstaller {
     pom.project(pomConfiguration)
 }
 
-afterEvaluate { project ->
-    uploadArchives {
-        repositories {
-            mavenDeployer {
-                repository(url: mavenLocal().url)
-
-                pom.project(pomConfiguration)
-                pom.whenConfigured { pom ->
-                    pom.dependencies = pom.dependencies.findAll { dep -> dep.scope != 'test'}
-                }
-            }
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository(url: mavenLocal().url)
+            pom.project(pomConfiguration)
         }
     }
 }
@@ -99,12 +93,11 @@ codenarc {
  */
 def getPomConfiguration() {
     return {
-        name 'Gradle HockeyApp Plugin - universal apk'
+        name 'Gradle HockeyApp Plugin'
         packaging 'jar'
         description 'A Gradle plugin for uploading iOS and Android Apps to HockeyApp.'
         url 'https://github.com/x2on/gradle-hockeyapp-plugin'
         group = 'com.marekeniro.gradle'
-
         licenses {
             license {
                 name 'The MIT License'
