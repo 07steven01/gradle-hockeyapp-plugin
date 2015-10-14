@@ -54,7 +54,7 @@ import org.gradle.logging.ProgressLoggerFactory
  */
 class HockeyAppUploadTask extends DefaultTask {
 
-    File applicationFile
+    List<File> applicationFiles = new ArrayList<>()
     File symbolsDirectory
     File mappingFile
     String variantName
@@ -62,8 +62,6 @@ class HockeyAppUploadTask extends DefaultTask {
     boolean mappingFileCouldBePresent = true
     HockeyAppPluginExtension hockeyApp
     String uploadAllPath
-
-    final String UNIVERSAL_APK_FILENAME_PART = "-universal-";
 
     HockeyAppUploadTask() {
         super()
@@ -83,9 +81,8 @@ class HockeyAppUploadTask extends DefaultTask {
             applicationVariant.outputs.each {
                 final String name = it.outputFile.getName()
 
-                if (FilenameUtils.isExtension(name, "apk") && name.contains(UNIVERSAL_APK_FILENAME_PART)) {
-                    applicationFile = it.outputFile
-                    return true
+                if (FilenameUtils.isExtension(name, "apk")) {
+                    applicationFiles.add(it.outputFile)
                 }
             }
 
@@ -105,9 +102,10 @@ class HockeyAppUploadTask extends DefaultTask {
             throw new IllegalArgumentException("Cannot upload to HockeyApp because API Token is missing")
         }
 
-        if (!applicationFile?.exists()) {
-            if (applicationFile) {
-                logger.debug("App file doesn't exist: "+applicationFile?.absolutePath)
+        /*
+        if (!applicationFiles?.exists()) {
+            if (applicationFiles) {
+                logger.debug("App file doesn't exist: "+applicationFiles?.absolutePath)
             }
             if (!applicationVariant && !hockeyApp.appFileNameRegex) {
                 throw new IllegalArgumentException("No appFileNameRegex provided.")
@@ -115,41 +113,43 @@ class HockeyAppUploadTask extends DefaultTask {
             if (!hockeyApp.outputDirectory || !hockeyApp.outputDirectory.exists()) {
                 throw new IllegalArgumentException("The outputDirectory (" + hockeyApp.outputDirectory ? hockeyApp.outputDirectory.absolutePath : " not defined " + ") doesn't exists")
             }
-            applicationFile = FileHelper.getFile(hockeyApp.appFileNameRegex, hockeyApp.outputDirectory);
-            if (!applicationFile) {
+            applicationFiles = FileHelper.getFile(hockeyApp.appFileNameRegex, hockeyApp.outputDirectory);
+            if (!applicationFiles) {
                 throw new IllegalStateException("No app file found in directory " + hockeyApp.outputDirectory.absolutePath)
             }
         }
+*/
+        applicationFiles.each {
+            logger.lifecycle("App file: " + it.absolutePath)
 
-        logger.lifecycle("App file: " + applicationFile.absolutePath)
+            // Retrieve mapping file if not using Android Gradle Plugin
+            // Requires it to be set in the project config
+            if (mappingFileCouldBePresent && !mappingFile && hockeyApp.symbolsDirectory?.exists()) {
+                symbolsDirectory = hockeyApp.symbolsDirectory
+                mappingFile = FileHelper.getFile(hockeyApp.mappingFileNameRegex, symbolsDirectory);
 
-        // Retrieve mapping file if not using Android Gradle Plugin
-        // Requires it to be set in the project config
-        if (mappingFileCouldBePresent && !mappingFile && hockeyApp.symbolsDirectory?.exists()) {
-            symbolsDirectory = hockeyApp.symbolsDirectory
-            mappingFile = FileHelper.getFile(hockeyApp.mappingFileNameRegex, symbolsDirectory);
-
-            if (!mappingFile) {
-                logger.warn("No Mapping file found.")
-            }
-        }
-
-        if (mappingFile?.exists()) {
-            logger.lifecycle("Mapping file: " + mappingFile.absolutePath)
-        }
-
-        String appId = null
-        if (hockeyApp.variantToApplicationId) {
-            appId = hockeyApp.variantToApplicationId[variantName]
-            if (!appId) {
-                if(project.getGradle().getTaskGraph().hasTask(uploadAllPath)) {
-                    logger.error("Could not resolve app ID for variant: ${variantName} in the variantToApplicationId map.")
-                } else {
-                    throw new IllegalArgumentException("Could not resolve app ID for variant: ${variantName} in the variantToApplicationId map.")
+                if (!mappingFile) {
+                    logger.warn("No Mapping file found.")
                 }
             }
+
+            if (mappingFile?.exists()) {
+                logger.lifecycle("Mapping file: " + mappingFile.absolutePath)
+            }
+
+            String appId = null
+            if (hockeyApp.variantToApplicationId) {
+                appId = hockeyApp.variantToApplicationId[variantName]
+                if (!appId) {
+                    if (project.getGradle().getTaskGraph().hasTask(uploadAllPath)) {
+                        logger.error("Could not resolve app ID for variant: ${variantName} in the variantToApplicationId map.")
+                    } else {
+                        throw new IllegalArgumentException("Could not resolve app ID for variant: ${variantName} in the variantToApplicationId map.")
+                    }
+                }
+            }
+            uploadAppplicationFileToHockeyApp(it, mappingFile, appId)
         }
-        uploadAppplicationFileToHockeyApp(applicationFile, mappingFile, appId)
     }
 
     def void uploadAppplicationFileToHockeyApp(File appFile, @Nullable File mappingFile, String appId) {
